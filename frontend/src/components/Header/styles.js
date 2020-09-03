@@ -55,6 +55,12 @@ export const RightSide = styled.div`
     }
   }
 
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
   .dividir::after {
     content: "|";
     margin: 0 10px;
