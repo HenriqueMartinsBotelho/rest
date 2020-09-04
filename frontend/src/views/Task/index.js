@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import * as S from "./styles";
 import api from "../../services/api";
+import isConnected from "../../utils/isConnected";
 import { format } from "date-fns";
 import { Redirect } from "react-router-dom";
 import Header from "../../components/Header";
@@ -11,7 +12,6 @@ import iconClock from "../../assets/clock.png";
 
 function Task({ match }) {
   const [redirect, setRedirect] = useState(false);
-  const [lateCount, setLateCount] = useState();
   const [type, setType] = useState();
   const [id, setId] = useState();
   const [done, setDone] = useState(false);
@@ -19,17 +19,11 @@ function Task({ match }) {
   const [description, setDescription] = useState();
   const [date, setDate] = useState();
   const [hour, setHour] = useState();
-  const [macaddress, setMacaddress] = useState("11:11:11:11:11:11");
-
-  async function lateVerify() {
-    await api.get(`/task/filter/late/11:11:11:11:11:11`).then((response) => {
-      setLateCount(response.data.length);
-    });
-  }
 
   async function LoadTaskDetails() {
     await api.get(`/task/${match.params.id}`).then((response) => {
       setType(response.data.type);
+      setDone(response.data.done);
       setTitle(response.data.title);
       setDescription(response.data.description);
       setDate(format(new Date(response.data.when), "yyyy-MM-dd"));
@@ -48,7 +42,7 @@ function Task({ match }) {
     if (match.params.id) {
       await api
         .put(`/task/${match.params.id}`, {
-          macaddress,
+          macaddress: isConnected,
           done,
           type,
           title,
@@ -59,7 +53,7 @@ function Task({ match }) {
     } else {
       await api
         .post("/task", {
-          macaddress,
+          macaddress: isConnected,
           type,
           title,
           description,
@@ -69,15 +63,24 @@ function Task({ match }) {
     }
   }
 
+  async function Remove() {
+    const res = window.confirm("Deseja realmente remover a tarefa?");
+    if (res == true) {
+      await api
+        .delete(`/task/${match.params.id}`)
+        .then(() => setRedirect(true));
+    }
+  }
+
   useEffect(() => {
-    lateVerify();
+    if (!isConnected) setRedirect(true);
     LoadTaskDetails();
   }, []);
 
   return (
     <S.Container>
       {redirect && <Redirect to="/" />}
-      <Header lateCount={lateCount} />
+      <Header />
       <S.Form>
         <S.TypeIcons>
           {TypeIcons.map(
@@ -140,7 +143,11 @@ function Task({ match }) {
             />
             <span>CONCLUÍDO</span>
           </div>
-          <button type="button">EXCLUIR</button>
+          {match.params.id && (
+            <button type="button" onClick={Remove}>
+              EXCLUIR
+            </button>
+          )}
         </S.Options>
         <S.Save>
           <button type="button" onClick={Save}>

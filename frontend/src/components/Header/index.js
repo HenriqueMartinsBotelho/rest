@@ -1,11 +1,30 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import * as S from "./styles";
 import { Link } from "react-router-dom";
 
 import logo from "../../assets/logo.png";
 import bell from "../../assets/bell.png";
 
-function Header({ lateCount, clickNotification }) {
+import api from "../../services/api";
+import isConnected from "../../utils/isConnected";
+
+function Header({ clickNotification }) {
+  const [lateCount, setLateCount] = useState();
+  async function lateVerify() {
+    await api.get(`/task/filter/late/${isConnected}`).then((response) => {
+      setLateCount(response.data.length);
+    });
+  }
+
+  useEffect(() => {
+    lateVerify();
+  });
+
+  async function Logout() {
+    localStorage.removeItem("@todo/macaddress");
+    window.location.reload();
+  }
+
   return (
     <S.Container>
       <S.LeftSide>
@@ -16,12 +35,22 @@ function Header({ lateCount, clickNotification }) {
         <div className="dividir"></div>
         <Link to="/task">NOVA TAREFA</Link>
         <div className="dividir"></div>
-        <a href="#">SINCRONIZAR CELULAR</a>
-        <div className="dividir"></div>
-        <button onClick={clickNotification} id="notification">
-          <img src={bell} alt="Notificação" />
-          <span>{lateCount}</span>
-        </button>
+        {!isConnected ? (
+          <Link to="/qrcode">SINCRONIZAR CELULAR</Link>
+        ) : (
+          <button type="button" onClick={Logout}>
+            SAIR
+          </button>
+        )}
+        {lateCount && (
+          <>
+            <div className="dividir"></div>
+            <button onClick={clickNotification} id="notification">
+              <img src={bell} alt="Notificação" />
+              <span>{lateCount}</span>
+            </button>
+          </>
+        )}
       </S.RightSide>
     </S.Container>
   );
